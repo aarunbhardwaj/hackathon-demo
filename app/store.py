@@ -1,8 +1,9 @@
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from app.models import HandoffRecord
+from app.models import HandoffRecord, Severity
 
 DEFAULT_DB = Path(__file__).resolve().parent.parent / "handoffs.db"
 
@@ -45,3 +46,47 @@ def insert_handoff(conn: sqlite3.Connection, record: HandoffRecord) -> HandoffRe
     )
     conn.commit()
     return record
+
+
+def _row_to_record(row: sqlite3.Row) -> HandoffRecord:
+    return HandoffRecord(
+        id=row["id"],
+        author_id=row["author_id"],
+        severity=row["severity"],
+        summary=row["summary"],
+        created_at=datetime.fromisoformat(row["created_at"]),
+    )
+
+
+def list_handoffs(
+    conn: sqlite3.Connection,
+    *,
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
+    severity: Optional[Severity] = None,
+    limit: int = 50,
+) -> list[HandoffRecord]:
+    clauses: list[str] = []
+    params: list[object] = []
+
+    if since is not None:
+        clauses.append("created_at >= ?")
+        params.append(since.isoformat())
+    if until is not None:
+        clauses.append("created_at <= ?")
+        params.append(until.isoformat())
+    if severity is not None:
+        clauses.append("severity = ?")
+        params.append(severity)
+
+    where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+    params.append(limit)
+    query = f"""
+        SELECT id, author_id, severity, summary, created_at
+        FROM handoffs
+        {where}
+        ORDER BY created_at DESC
+        LIMIT ?
+    """
+    rows = conn.execute(query, params).fetchall()
+    return [_row_to_record(row) for row in rows]

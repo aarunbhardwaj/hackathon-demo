@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
+from typing import Annotated, Optional
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 
-from app.models import HandoffCreate, HandoffRecord
-from app.store import connect, init_db, insert_handoff
+from app.models import HandoffCreate, HandoffRecord, Severity
+from app.store import connect, init_db, insert_handoff, list_handoffs
 
 DB_PATH = Path(__file__).resolve().parent.parent / "handoffs.db"
 
@@ -29,6 +31,36 @@ def create_handoff(payload: HandoffCreate) -> HandoffRecord:
     return record
 
 
+def _parse_iso(param: str, name: str) -> datetime:
+    try:
+        return datetime.fromisoformat(param.replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError(f"Invalid {name}: expected ISO-8601 timestamp") from exc
+
+
+@app.get("/handoffs")
+def get_handoffs(
+    since: Optional[str] = None,
+    until: Optional[str] = None,
+    severity: Optional[Severity] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> list[HandoffRecord]:
+    since_dt = _parse_iso(since, "since") if since else None
+    until_dt = _parse_iso(until, "until") if until else None
+    return list_handoffs(
+        app.state.db,
+        since=since_dt,
+        until=until_dt,
+        severity=severity,
+        limit=limit,
+    )
+
+
 @app.exception_handler(ValueError)
 async def value_error_handler(_request: Request, exc: ValueError):
     return JSONResponse(status_code=422, content={"detail": str(exc)})
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
