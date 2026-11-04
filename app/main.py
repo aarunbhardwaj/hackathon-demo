@@ -6,6 +6,7 @@ from typing import Annotated, Literal, Optional
 from fastapi import FastAPI, Query, Request
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.models import HandoffCreate, HandoffRecord, Severity
 from app.store import connect, init_db, insert_handoff, list_handoffs
@@ -112,3 +113,8 @@ def export_handoffs(since: str, until: str) -> ExportResponse:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+if STATIC_DIR.is_dir():
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="static")

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Shift Handoff Log</title>
+    <style>
+      :root {
+        font-family: system-ui, sans-serif;
+        color: #1a1a1a;
+        background: #f6f4ef;
+      }
+      body {
+        max-width: 720px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      h1 {
+        font-size: 1.5rem;
+      }
+      form,
+      section {
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        margin: 0.5rem 0 0.25rem;
+        font-size: 0.9rem;
+      }
+      input,
+      select,
+      textarea,
+      button {
+        width: 100%;
+        box-sizing: border-box;
+        font: inherit;
+      }
+      textarea {
+        min-height: 4rem;
+      }
+      button {
+        margin-top: 0.75rem;
+        padding: 0.5rem;
+        cursor: pointer;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 0.35rem 0.25rem;
+        border-bottom: 1px solid #eee;
+        vertical-align: top;
+      }
+      .severity-critical {
+        color: #b00020;
+        font-weight: 600;
+      }
+      .severity-warning {
+        color: #9a6700;
+      }
+      #status {
+        min-height: 1.25rem;
+        font-size: 0.9rem;
+      }
+      #status.error {
+        color: #b00020;
+      }
+      #status.ok {
+        color: #0d6832;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Shift Handoff Log</h1>
+
+    <form id="create-form">
+      <h2>New handoff</h2>
+      <label for="author_id">Author id</label>
+      <input id="author_id" name="author_id" required maxlength="200" />
+
+      <label for="severity">Severity</label>
+      <select id="severity" name="severity" required>
+        <option value="info">info</option>
+        <option value="warning">warning</option>
+        <option value="critical">critical</option>
+      </select>
+
+      <label for="summary">Summary</label>
+      <textarea id="summary" name="summary" required maxlength="2000"></textarea>
+
+      <button type="submit">Save handoff</button>
+      <p id="status" role="status"></p>
+    </form>
+
+    <section>
+      <h2>Recent handoffs</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Author</th>
+            <th>Severity</th>
+            <th>Summary</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </section>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const rowsEl = document.getElementById("rows");
+      const form = document.getElementById("create-form");
+
+      function severityClass(value) {
+        return value === "critical" || value === "warning"
+          ? `severity-${value}`
+          : "";
+      }
+
+      async function loadHandoffs() {
+        const res = await fetch("/handoffs?limit=20");
+        const items = await res.json();
+        rowsEl.innerHTML = "";
+        for (const item of items) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td>${new Date(item.created_at).toLocaleString()}</td>
+            <td>${item.author_id}</td>
+            <td class="${severityClass(item.severity)}">${item.severity}</td>
+            <td>${item.summary}</td>`;
+          rowsEl.appendChild(tr);
+        }
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        statusEl.textContent = "";
+        statusEl.className = "";
+        const payload = {
+          author_id: form.author_id.value.trim(),
+          severity: form.severity.value,
+          summary: form.summary.value.trim(),
+        };
+        const res = await fetch("/handoffs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          statusEl.textContent = "Could not save — check required fields and severity.";
+          statusEl.className = "error";
+          return;
+        }
+        statusEl.textContent = "Handoff saved.";
+        statusEl.className = "ok";
+        form.summary.value = "";
+        await loadHandoffs();
+      });
+
+      loadHandoffs();
+    </script>
+  </body>
+</html>

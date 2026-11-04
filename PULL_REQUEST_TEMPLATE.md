@@ -1,15 +1,22 @@
-# Pull request scaffold
-
-Server prompt-bundle scaffold for team repository use. Explicit links qualify
-only with a filled provider key/URL or immutable provider back-link. Branch-name
-or free-text similarity does not qualify.
+# Pull request
 
 ## Acceptance criteria
 
-- [ ] FILL: AC-EXAMPLE-1 — checklist row placeholder only
+- [ ] AC-HANDOFF-CREATE-1
+- [ ] AC-HANDOFF-CREATE-2
+- [ ] AC-HANDOFF-CREATE-3
+- [ ] AC-HANDOFF-LIST-1
+- [ ] AC-HANDOFF-LIST-2
+- [ ] AC-HANDOFF-LIST-3
+- [ ] AC-HANDOFF-EXPORT-1
+- [ ] AC-HANDOFF-EXPORT-2
+- [ ] AC-HANDOFF-UI-1
+- [ ] AC-HANDOFF-UI-2
+
+Check only the AC ids this PR satisfies.
 
 ## Traceability
 
-Work item: FILL: provider work-item key or URL when explicitly linked
+Work item: N/A – hackathon repo only
 
-Not in spec: FILL: out-of-spec note placeholder (one line)
+Not in spec: None unless noted in PR description.
