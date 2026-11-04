@@ -65,6 +65,7 @@ def list_handoffs(
     until: Optional[datetime] = None,
     severity: Optional[Severity] = None,
     limit: int = 50,
+    ascending: bool = False,
 ) -> list[HandoffRecord]:
     clauses: list[str] = []
     params: list[object] = []
@@ -85,7 +86,7 @@ def list_handoffs(
         SELECT id, author_id, severity, summary, created_at
         FROM handoffs
         {where}
-        ORDER BY created_at DESC
+        ORDER BY created_at {'ASC' if ascending else 'DESC'}
         LIMIT ?
     """
     rows = conn.execute(query, params).fetchall()
